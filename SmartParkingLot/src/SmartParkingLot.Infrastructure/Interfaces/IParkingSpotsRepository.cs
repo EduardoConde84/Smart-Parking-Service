@@ -4,6 +4,6 @@ namespace SmartParkingLot.Infrastructure.Interfaces
 {
     public interface IParkingSpotsRepository : IRepository<ParkingSpots>
     {
-
+        IQueryable<ParkingSpots> GetAllParkingSpotsPaginated();
     }
 }

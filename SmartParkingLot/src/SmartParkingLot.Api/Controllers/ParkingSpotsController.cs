@@ -1,17 +1,26 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using SmartParkingLot.Domain.Dtos;
+using SmartParkingLot.Domain.Helpers.Pagination;
 using SmartParkingLot.Domain.Interfaces;
+using SmartParkingLot.Domain.Models;
 
 namespace SmartParkingLot.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
-    public class ParkingSpotsController(ILogger<ParkingSpotsController> logger
-        , IParkingSpotsService service, IDevicesService devicesService) : Controller
+    public class ParkingSpotsController(
+        ILogger<ParkingSpotsController> logger, 
+        IParkingSpotsService service, 
+        IDevicesService devicesService, 
+        IPaginationHelper paginationHelper) : Controller
     {
         private readonly IParkingSpotsService _service = service;
         private readonly IDevicesService _devicesService = devicesService;
+
+        private readonly IPaginationHelper _paginationHelper = paginationHelper;
+
         private readonly ILogger<ParkingSpotsController> _logger = logger;
 
         [HttpPost("{id:int}/occupy")]
@@ -63,11 +72,31 @@ namespace SmartParkingLot.Api.Controllers
         [ProducesResponseType(typeof(IEnumerable<ParkingSpotDto>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<IActionResult> GetAllParkingSpots()
+        public async Task<IActionResult> GetAllParkingSpots([FromQuery] PaginationFilterRequest filter)
         {
             var result = await _service.GetAllParkingSpotsAsync();
 
-            if (result.Any()) return Ok(result);
+            if (result.Any()) 
+            {
+                var pagedResponse = _paginationHelper.CreatePagedResponse(
+                    result,
+                    filter.PageNumber,
+                    filter.PageSize);
+
+                var metadata = new
+                {
+                    pagedResponse.TotalCount,
+                    pagedResponse.PageSize,
+                    pagedResponse.CurrentPage,
+                    pagedResponse.TotalPages,
+                    pagedResponse.HasNext,
+                    pagedResponse.HasPrevious
+                };
+
+                Response.Headers.Append("X-Pagination", JsonSerializer.Serialize(metadata));
+                
+                return Ok(pagedResponse.Data);         
+            }
 
             _logger.LogInformation("Parking Spots not found");
             return NotFound("Products not found");
