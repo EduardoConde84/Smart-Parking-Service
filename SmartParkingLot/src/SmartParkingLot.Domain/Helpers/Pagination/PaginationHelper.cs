@@ -1,3 +1,4 @@
+using System.Linq;
 using SmartParkingLot.Domain.Interfaces;
 using SmartParkingLot.Domain.Models;
 
@@ -20,7 +21,7 @@ namespace SmartParkingLot.Domain.Helpers.Pagination
             var pagedData = new PagedData<T>
             {
                 Data = filteredData,
-                TotalRecords = filteredData.Count
+                TotalRecords = data.Count()
             };
 
             return CreatePagedResponse(filteredData, pagedData.TotalRecords);
